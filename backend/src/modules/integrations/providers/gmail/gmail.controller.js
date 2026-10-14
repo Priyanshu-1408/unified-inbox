@@ -71,20 +71,13 @@ export async function gmailStatus(req, res) {
 
 export async function gmailMessages(req, res) {
   try {
-    const limit = Math.min(
-      Math.max(Number(req.query.limit) || 20, 1),
-      50
-    );
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+    const { pageToken } = req.query;
 
-    const result = await getGmailMessages(limit);
-
-    res.json(result);
+    res.json(await getGmailMessages(limit, pageToken));
   } catch (err) {
     console.error('Gmail messages error:', err.message);
-
-    res.status(500).json({
-      error: 'Failed to fetch Gmail messages',
-    });
+    res.status(500).json({ error: 'Failed to fetch Gmail messages' });
   }
 }
 
@@ -96,3 +89,4 @@ export async function gmailMessage(req, res) {
     res.status(500).json({ error: 'Failed to fetch email details' });
   }
 }
+
