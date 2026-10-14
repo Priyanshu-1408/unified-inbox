@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 import GmailAccount from './gmail.model.js';
 import { oauthClient, getAuthUrl } from './gmail.oauth.js';
 import { getGmailMessages, getGmailMessage } from './gmail.service.js';
+import { sendGmailMessage } from './gmail.service.js';
 
 const states = new Set();
 
@@ -72,9 +73,9 @@ export async function gmailStatus(req, res) {
 export async function gmailMessages(req, res) {
   try {
     const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
-    const { pageToken } = req.query;
+    const { pageToken, q } = req.query;
 
-    res.json(await getGmailMessages(limit, pageToken));
+    res.json(await getGmailMessages(limit, pageToken, q));
   } catch (err) {
     console.error('Gmail messages error:', err.message);
     res.status(500).json({ error: 'Failed to fetch Gmail messages' });
@@ -90,3 +91,24 @@ export async function gmailMessage(req, res) {
   }
 }
 
+export async function sendEmail(req, res) {
+  try {
+    const { to, subject, body } = req.body;
+
+    if (!to || !subject || !body) {
+      return res.status(400).json({
+        error: 'Recipient, subject and body are required',
+      });
+    }
+
+    const result = await sendGmailMessage({ to, subject, body });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Send email error:', err.message);
+
+    res.status(500).json({
+      error: 'Failed to send email',
+    });
+  }
+}

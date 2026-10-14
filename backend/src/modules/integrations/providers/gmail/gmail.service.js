@@ -36,13 +36,14 @@ async function getGmailClient() {
   };
 }
 
-export async function getGmailMessages(maxResults = 20, pageToken) {
+export async function getGmailMessages(maxResults = 20, pageToken, query) {
   const { account, gmail } = await getGmailClient();
 
   const response = await gmail.users.messages.list({
     userId: "me",
     maxResults,
     ...(pageToken && { pageToken }),
+    ...(query && { q: query }),
   });
 
   const messages = await Promise.all(
@@ -115,5 +116,31 @@ export async function getGmailMessage(id) {
     date: getHeader("Date"),
     body: getBody(data.payload ?? {}),
     isRead: !data.labelIds?.includes("UNREAD"),
+  };
+}
+
+
+export async function sendGmailMessage({ to, subject, body }) {
+  const { gmail } = await getGmailClient();
+
+  const message = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    body,
+  ].join('\r\n');
+
+  const raw = Buffer.from(message).toString('base64url');
+
+  const { data } = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw },
+  });
+
+  return {
+    success: true,
+    id: data.id,
+    threadId: data.threadId,
   };
 }
