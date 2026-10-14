@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
+import gmailRoutes from './modules/integrations/providers/gmail/gmail.routes.js';
 
 const app = express();
 const server = createServer(app);
@@ -10,15 +12,21 @@ const server = createServer(app);
 app.use(cors({ origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173' }));
 app.use(express.json());
 
+app.use('/api/integrations/gmail', gmailRoutes);
+
 const io = new Server(server, {
   cors: { origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173' },
 });
 
-io.on('connection', () => {
-  // Register feature socket handlers here as they are added.
-});
+io.on('connection', () => {});
 
 const port = Number(process.env.PORT) || 3000;
-server.listen(port, () => {
-  console.log(`Unified Inbox server listening on port ${port}`);
-});
+
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => server.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+  }))
+  .catch(err => {
+    console.error('MongoDB connection failed:', err.message);
+    process.exit(1);
+  });
