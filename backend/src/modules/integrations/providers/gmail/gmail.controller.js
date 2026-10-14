@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { google } from 'googleapis';
 import GmailAccount from './gmail.model.js';
 import { oauthClient, getAuthUrl } from './gmail.oauth.js';
-import { getGmailMessages } from './gmail.service.js';
+import { getGmailMessages, getGmailMessage } from './gmail.service.js';
 
 const states = new Set();
 
@@ -85,5 +85,14 @@ export async function gmailMessages(req, res) {
     res.status(500).json({
       error: 'Failed to fetch Gmail messages',
     });
+  }
+}
+
+export async function gmailMessage(req, res) {
+  try {
+    res.json(await getGmailMessage(req.params.id));
+  } catch (err) {
+    console.error('Gmail message error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch email details' });
   }
 }
