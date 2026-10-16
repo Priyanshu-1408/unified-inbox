@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import gmailRoutes from './modules/integrations/providers/gmail/gmail.routes.js';
+import slackRoutes from './modules/integrations/providers/slack/slack.routes.js';
 
 const app = express();
 const server = createServer(app);
@@ -13,6 +14,7 @@ app.use(cors({ origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173' }));
 app.use(express.json());
 
 app.use('/api/integrations/gmail', gmailRoutes);
+app.use('/api/integrations/slack', slackRoutes);
 
 const io = new Server(server, {
   cors: { origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173' },
