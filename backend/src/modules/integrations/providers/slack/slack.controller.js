@@ -15,53 +15,56 @@ export async function slackCallback(req, res) {
 
   if (error) return res.status(400).json({ error });
   if (!state || !states.has(state)) {
-    return res.status(400).json({ error: "Invalid OAuth state" });
+    return res.status(400).json({ error: 'Invalid OAuth state' });
   }
 
   states.delete(state);
 
   try {
+    if (!code) {
+      return res.status(400).json({ error: 'Missing authorization code' });
+    }
+
     const data = await exchangeSlackCode(code);
 
-    ```
-await SlackAccount.findOneAndUpdate(
-  { teamId: data.team.id },
-  {
-    teamId: data.team.id,
-    teamName: data.team.name,
-    userId: data.authed_user.id,
-    accessToken: data.access_token,
-    scope: data.scope,
-  },
-  { upsert: true, new: true, runValidators: true }
-);
+    await SlackAccount.findOneAndUpdate(
+      { teamId: data.team.id },
+      {
+        teamId: data.team.id,
+        teamName: data.team.name,
+        userId: data.authed_user.id,
+        accessToken: data.access_token,
+        scope: data.scope,
+      },
+      { upsert: true, new: true, runValidators: true }
+    );
 
-res.json({
-  success: true,
-  message: 'Slack connected successfully',
-  team: data.team.name,
-});
-```;
+    res.json({
+      success: true,
+      message: 'Slack connected successfully',
+      team: data.team.name,
+    });
   } catch (err) {
-    console.error("Slack OAuth error:", err.message);
-    res.status(500).json({ error: "Slack connection failed" });
+    console.error('Slack OAuth error:', err.stack);
+    res.status(500).json({ error: 'Slack connection failed' });
   }
 }
 
 export async function slackStatus(req, res) {
-try {
-const accounts = await SlackAccount.find({}, 'teamId teamName userId');
+  try {
+    const accounts = await SlackAccount.find(
+      {},
+      'teamId teamName userId'
+    );
 
-```
-res.json({
-  connected: accounts.length > 0,
-  accounts,
-});
-```
-
-} catch (err) {
-console.error('Slack status error:', err);
-res.status(500).json({ error: 'Failed to fetch Slack status' });
+    res.json({
+      connected: accounts.length > 0,
+      accounts,
+    });
+  } catch (err) {
+    console.error('Slack status error:', err);
+    res.status(500).json({
+      error: 'Failed to fetch Slack status',
+    });
+  }
 }
-}
-
