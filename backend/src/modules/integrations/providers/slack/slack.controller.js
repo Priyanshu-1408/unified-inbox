@@ -1,6 +1,11 @@
 import { randomBytes } from "node:crypto";
 import SlackAccount from "./slack.model.js";
 import { getSlackAuthUrl, exchangeSlackCode } from "./slack.oauth.js";
+import {
+  getSlackChannels,
+  getSlackMessages,
+  sendSlackMessage
+} from './slack.service.js';
 
 const states = new Set();
 
@@ -38,7 +43,7 @@ export async function slackCallback(req, res) {
       },
       { upsert: true, new: true, runValidators: true }
     );
-
+   
     res.json({
       success: true,
       message: 'Slack connected successfully',
@@ -66,5 +71,49 @@ export async function slackStatus(req, res) {
     res.status(500).json({
       error: 'Failed to fetch Slack status',
     });
+  }
+}
+
+export async function slackChannels(req, res) {
+  try {
+    res.json(await getSlackChannels());
+  } catch (err) {
+    console.error('Slack channels error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch Slack channels' });
+  }
+}
+
+export async function slackMessages(req, res) {
+  try {
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 20, 1),
+      100
+    );
+
+    res.json(
+      await getSlackMessages(
+        req.params.id,
+        limit,
+        req.query.cursor
+      )
+    );
+  } catch (err) {
+    console.error('Slack messages error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch Slack messages' });
+  }
+}
+
+export async function sendMessage(req, res) {
+  try {
+    const { channel, text } = req.body;
+
+    if (!channel || !text?.trim()) {
+      return res.status(400).json({ error: 'Channel and message text are required' });
+    }
+
+    res.json(await sendSlackMessage(channel, text));
+  } catch (err) {
+    console.error('Slack send message error:', err.message);
+    res.status(500).json({ error: 'Failed to send Slack message' });
   }
 }
