@@ -65,7 +65,7 @@ export default function Sidebar({
         }`}
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 font-bold text-purple-600">
-          #
+          S
         </span>
         Slack
       </button>
