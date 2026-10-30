@@ -1,5 +1,5 @@
 
-const API_BASE_URL = 'http://localhost:3000/api/integrations/gmail';
+const API_BASE_URL = 'http://localhost:5000/api/integrations/gmail';
 
 export async function getGmailStatus() {
   const response = await fetch(`${API_BASE_URL}/status`);
