@@ -7,7 +7,7 @@ import ReplyList from "../features/inbox/components/ReplyList.jsx";
 import ReplyBox from "../features/inbox/components/ReplyBox.jsx";
 import { initialMessages } from "../features/inbox/inbox.data.js";
 import { useEffect } from "react";
-import { getGmailStatus, getGmailMessages,getGmailMessage } from "../services/gmailApi.js";
+import {getGmailStatus, getGmailMessages,  getGmailMessage, sendGmailEmail,} from "../services/gmailApi.js";
 
 const navigation = [
   { name: "All messages", icon: "▤" },
@@ -23,7 +23,7 @@ export default function App() {
   const [reply, setReply] = useState("");
   const [sent, setSent] = useState([]);
   const [active, setActive] = useState("Inbox");
-
+ 
   //for gmail backend api calling through useeffect
   const [gmailConnected, setGmailConnected] = useState(false);
 const [gmailMessages, setGmailMessages] = useState([]);
@@ -45,7 +45,7 @@ useEffect(() => {
   }
 
   loadGmailData();
-}, []);
+}, []); 
 
 
 
@@ -99,7 +99,7 @@ const formattedGmailMessages = gmailMessages.map((mail) => {   // for fomat comp
     color: "bg-red-100 text-red-600",
   };
 });
-
+ 
 
 const allMessages = [
   ...initialMessages.filter((message) => message.platform !== "Gmail"),
@@ -112,20 +112,20 @@ const allMessages = [
       (active === "Gmail" && message.platform === "Gmail") ||
       (active === "Slack" && message.platform === "Slack");
 
-    const matchesSearch = `${message.sender} ${message.subject} ${message.text}`
+    const matchesSearch = `${message.sender} ${message.subject} ${message.text}`  //for search functionality
       .toLowerCase()
       .includes(search.toLowerCase());
 
-    const matchesFilter = filter !== "Unread" || !message.read;
+    // const matchesFilter = filter !== "Unread" || !message.read;
 
-    const matchesStarred = filter !== "Starred" || message.starred;
+    // const matchesStarred = filter !== "Starred" || message.starred;
 
-    return matchesPlatform && matchesSearch && matchesFilter && matchesStarred;
+    return matchesPlatform && matchesSearch ;
   });
 
   function selectMessage(message) {
     setSelected(message);
-    setMessages((current) =>
+    setMessages((current) =>  //current means current state of message
       current.map((item) =>
         item.id === message.id ? { ...item, read: true } : item,
       ),
@@ -133,29 +133,69 @@ const allMessages = [
   }
 
   function toggleStar(id) {
-    setMessages((current) =>
-      current.map((message) =>
-        message.id === id ? { ...message, starred: !message.starred } : message,
-      ),
-    );
+    // setMessages((current) =>
+    //   current.map((message) =>
+    //     message.id === id ? { ...message, starred: !message.starred } : message,
+    //   ),
+    // );
 
-    if (selected?.id === id) {
-      setSelected((current) => ({ ...current, starred: !current.starred }));
+    // if (selected?.id === id) {
+    //   setSelected((current) => ({ ...current, starred: !current.starred }));
+    // }
+  }
+
+  async function sendReply(event) {
+  event.preventDefault();
+
+  if (!reply.trim() || !selected) return;  // if any condtion is ture then functiponm stop
+
+  const replyText = reply.trim();
+
+  // Gmail reply
+  if (selected.platform === "Gmail") {
+    try {
+      const recipient = selected.email;
+      const subject = selected.subject.startsWith("Re:")
+        ? selected.subject
+        : `Re: ${selected.subject}`;
+
+      await sendGmailEmail({
+        to: recipient,
+        subject,
+        body: replyText,
+      });
+
+      setSent((current) => [
+        ...current,          //preserve the old replies
+        {
+          id: Date.now(),
+          messageId: selected.id,
+          text: replyText,
+        },
+      ]);
+
+      setReply(""); // reply box clear after sending the reply
+      alert("Email sent successfully!");
+    } catch (error) {
+      console.error("Gmail reply error:", error.message);
+      alert(error.message);
     }
+
+    return;  // if all work is done then execution of function is stoped
   }
 
-  function sendReply(event) {
-    event.preventDefault();
+  // Existing Slack/demo reply functionality
+  setSent((current) => [
+    ...current,
+    {
+      id: Date.now(),
+      messageId: selected.id,
+      text: replyText,
+    },
+  ]);
 
-    if (!reply.trim() || !selected) return;
-
-    setSent((current) => [
-      ...current,
-      { id: Date.now(), messageId: selected.id, text: reply.trim() },
-    ]);
-
-    setReply("");
-  }
+  setReply("");
+}
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-800">
@@ -181,7 +221,18 @@ const allMessages = [
           <section className="flex min-w-0 flex-col bg-slate-50">
             {selected ? (
               <>
-                <MessageView message={selected} onToggleStar={toggleStar} />
+                <MessageView
+  message={
+    selected?.platform === "Gmail" &&
+    selectedGmailMessage?.id === selected.id
+      ? {
+          ...selected,
+          text: selectedGmailMessage.body || selected.text,
+        }
+      : selected
+  }
+  onToggleStar={toggleStar}
+/>
 
                 <div className="flex-1 overflow-y-auto p-8">
                   <ReplyList
@@ -190,6 +241,9 @@ const allMessages = [
                     )}
                   />
                 </div>
+
+
+
 
                 <ReplyBox
                   platform={selected.platform}
@@ -209,6 +263,7 @@ const allMessages = [
     </div>
   );
 }
+
 
 
 
