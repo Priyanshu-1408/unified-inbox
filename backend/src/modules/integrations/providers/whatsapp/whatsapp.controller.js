@@ -34,6 +34,8 @@ export function verifyWhatsAppWebhook(req, res) {  // for receiving message from
   const challenge = req.query["hub.challenge"]; //random challenge number send by meta
 
   if (
+
+
     mode === "subscribe" &&
     token === process.env.WHATSAPP_VERIFY_TOKEN  
   ) {
@@ -41,18 +43,66 @@ export function verifyWhatsAppWebhook(req, res) {  // for receiving message from
     return res.status(200).send(challenge);
   }
 
+
   return res.sendStatus(403);
 }
 
 export async function handleWhatsAppWebhook(req, res) {
+  console.log("WHATSAPP WEBHOOK HIT");
   try {
     const body = req.body;
+    if (body.object !== "whatsapp_business_account") {
+      return res.sendStatus(404);
+    }
 
-    console.log("Incoming WhatsApp Webhook:", JSON.stringify(body, null, 2));  //null means we dont want to filter anything in the response body and 2 means 2 spaces indentation
+    for (const entry of body.entry ?? []) {
+      for (const change of entry.changes ?? []) {
+        const value = change.value;
+
+        // Incoming messages
+        for (const message of value.messages ?? []) {   //funding sender details
+          const contact = value.contacts?.find(
+            (item) => item.wa_id === message.from
+          );
+
+          const incomingMessage = {
+            messageId: message.id,
+            from: message.from,
+            senderName: contact?.profile?.name ?? "",
+            timestamp: message.timestamp,
+            type: message.type,
+            text: message.text?.body ?? "",
+          };
+
+          console.log("Incoming WhatsApp Message:", incomingMessage);
+        }
+
+        // Message delivery status updates
+        for (const status of value.statuses ?? []) {
+          console.log("WhatsApp Message Status:", {
+            messageId: status.id,
+            recipient: status.recipient_id,
+            status: status.status,
+            timestamp: status.timestamp,
+          });
+        }
+      }
+    }
+
+      
 
     return res.sendStatus(200);
   } catch (error) {
     console.error("WhatsApp Webhook Error:", error.message);
     return res.sendStatus(500);
   }
-}
+}   
+
+
+
+
+
+
+
+
+
