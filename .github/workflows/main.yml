@@ -1,0 +1,28 @@
+
+name: Gemini AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  gemini-review:
+    name: Gemini Review Bot
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Gemini Review Bot
+        uses: jomatsu/ai-reviewer@v1.0.6
+        with:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODEL_CODE: models/gemini-2.0-flash
+          LANGUAGE: English
+          EXCLUDE_PATHS: "node_modules,dist,build"

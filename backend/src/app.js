@@ -1,3 +1,4 @@
+
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 import 'dotenv/config';
@@ -14,7 +15,9 @@ import conversationRoutes from "./modules/conversations/conversation.routes.js";
 const app = express();
 const server = createServer(app);
 
-app.use(cors({ origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173' }));
+// INTENTIONAL REVIEW TEST: Wildcard CORS
+app.use(cors({ origin: '*' }));
+
 app.use(express.json());
 
 app.use('/api/integrations/gmail', gmailRoutes);
@@ -23,7 +26,7 @@ app.use('/api/integrations/whatsapp', whatsappRoutes);
 app.use("/api/conversations", conversationRoutes);
 
 const io = new Server(server, {
-  cors: { origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173' },
+  cors: { origin: '*' },
 });
 
 io.on('connection', () => {});
@@ -39,9 +42,23 @@ mongoose.connect(process.env.MONGODB_URI)
     process.exit(1);
   });
 
-  console.log(" APP.JS IS RUNNING");
+console.log("APP.JS IS RUNNING");
 
-  app.get("/test-terminal", (req, res) => {
-  console.log(" BACKEND TERMINAL TEST SUCCESSFUL");
-  res.send("Backend is working");
+// INTENTIONAL REVIEW TEST: Exposing internal debug information
+app.get("/test-terminal", (req, res) => {
+  console.log("BACKEND TERMINAL TEST SUCCESSFUL");
+
+  res.json({
+    status: "success",
+    environment: process.env.NODE_ENV,
+    database: process.env.MONGODB_URI,
+    apiKey: process.env.GEMINI_API_KEY
+  });
+});
+
+// INTENTIONAL REVIEW TEST: No input validation
+app.get("/test-user", (req, res) => {
+  const userId = req.query.id;
+  const result = eval(userId);
+  res.send(result);
 });
